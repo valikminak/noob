@@ -2,6 +2,7 @@ import calendar
 import os
 from datetime import datetime
 
+from PIL import Image
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver import Keys, ActionChains
@@ -17,7 +18,7 @@ load_dotenv()
 
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
-channel_id = os.getenv('CHANNEL_ID')
+channel_id = int(os.getenv('CHANNEL_ID'))
 
 
 class Button:
@@ -134,14 +135,19 @@ class BrowserManager:
         return True
 
     @staticmethod
-    def switch_to_the_first_tab(driver):
-        # TODO: making browser with more than one tab upwards, need fix
+    def switch_to_posts_create_tab(driver):
         window_handles = driver.window_handles
-        if len(window_handles) > 1:
+        if len(window_handles) == 1:
+            if "/posts/create" in driver.current_url:
+                return
+            else:
+                raise Exception("Tab with URL '/posts/create' not found")
+        else:
             for handle in window_handles:
-                driver.switch_to.window(handle)
+                driver.execute_script("window.open(arguments[0]);", handle)
                 if "/posts/create" in driver.current_url:
-                    break
+                    return
+            raise Exception("Tab with URL '/posts/create' not found")
 
 
 class TimeHandlerMixin:
@@ -227,7 +233,7 @@ class TelegramManager:
         self.my_client = TelegramClient('anon', api_id, api_hash, loop=loop)
 
     async def get_messages_async(self):
-        messages = await self.my_client.get_messages(channel_id, limit=20)
+        messages = await self.my_client.get_messages(channel_id, limit=30)
         dir_name = "./images/"
         post_data = []
         message_ids = []
@@ -236,6 +242,11 @@ class TelegramManager:
                 img_name = f"img_{i}.jpg"
                 filename = f"{dir_name}{img_name}"
                 await self.my_client.download_media(message, filename)
+                # compress image
+                img = Image.open(filename)
+                img.thumbnail((1500, 1500), Image.LANCZOS)
+                img.save(filename, "JPEG", quality=90)
+
                 post_data.append({"image": filename, "text": message.message})
                 message_ids.append(message.id)
         return post_data, message_ids

@@ -79,6 +79,7 @@ class Post(models.Model, TimeHandlerMixin):
     def create_post_for_profile(self, profile: Profile):
         self.browser_manager = BrowserManager(profile)
         driver = self.browser_manager.setup_webdriver()
+        self.browser_manager.switch_to_posts_create_tab(driver)
         self.browser_manager.set_expiration_period(driver)
         day_of_month = self.day_of_month
         is_pm = self.am_pm == "PM"
