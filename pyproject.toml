@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "noob"
+version = "0.1.0"
+description = ""
+authors = ["valentyn <valik@esmedia.es>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "4.2.9"
+django-debug-toolbar = "^4.2.0"
+pillow = "^10.2.0"
+pyscreenshot = "^3.1"
+requests = "^2.31.0"
+selenium = "^4.17.2"
+pyperclip = "^1.8.2"
+osascript = "^2020.12.3"
+telethon = "^1.33.1"
+whitenoise = "^6.6.0"
+pytz = "^2023.4"
+pyautogui = "^0.9.54"
+django-extensions = "^3.2.3"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

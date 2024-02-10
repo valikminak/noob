@@ -1,0 +1,68 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+#control-panel {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    line-height: 20px;
+    text-align: center;
+    background: #00aff0;
+    color: #fff;
+    font-weight: 300;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #0091EA;
+}
+
+#plus_btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.plus-sign {
+    width: 25px;
+    height: 25px;
+    font-size: 35px;
+}
+
+#post_scheduler, .fill-post, .timer {
+    border-radius: 20px;
+    font-size: 15px;
+    padding: 8px 18px;
+}
+
+.timer {
+    width: 50px;
+    font-size: 20px;
+    font-weight: 900;
+    background: #dccf63;
+}
+
+.timer:focus, .timer:hover {
+    outline: none;
+    background: #00aff0;
+    cursor: default;
+}
+
+

@@ -1,0 +1,10 @@
+.DS_Store
+.python-version
+.idea
+.env
+anon.session
+screenshots/*
+now/*
+images/*
+static/images/*
+db.sqlite3

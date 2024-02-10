@@ -1,0 +1,12 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+{% block content %}
+    {{ block.super }}
+    {% block object-tools %}
+        <ul class="object-tools">
+            {% block object-tools-items %}
+                <li><a href="{% url "admin:posts_fetch_posts" %}">Fetch</a></li>
+            {% endblock %}
+        </ul>
+    {% endblock %}
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block extrahead %}
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+{% endblock %}
+{% block object-tools %}{% endblock %}
+{% block header %}
+    {{ block.super }}
+    <div id="control-panel">
+        <div id="timer" class="timer btn">0</div>
+        <button class="btn" id="post_scheduler">SCHEDULE</button>
+        <button id="plus_btn" class="btn">
+            <span class="plus-sign">+</span>
+        </button>
+    </div>
+{% endblock %}
+{% block footer %}
+    {{ block.super }}
+    <script>
+        $(document).ready(function () {
+            function createTimer() {
+                let counter = 0;
+                let timerElement = $('#timer')
+                timerElement.text('0');
+                timerElement.css('background', '#dccf63')
+                let timer = setInterval(() => {
+                    counter++;
+                    timerElement.text(counter);
+                    if (counter >= 10) {
+                        timerElement.css('background', '#7fff00')
+                        clearInterval(timer);
+                    }
+                }, 1000);
+                return timerElement;
+            }
+
+            {#createTimer();#}
+
+            $('#plus_btn').click(function (e) {
+                e.preventDefault();
+                let csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+                $.ajax({
+                    type: 'POST',
+                    url: '{% url "admin:posts_create_new_post" %}',
+                    data: {},
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    success: function (response) {
+                        console.log(response);
+                    }
+                });
+            });
+
+            $(document).on('click', '.fill-post', function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                btn.prop('disabled', true);
+                btn.css('background', 'grey');
+                let csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+                $.ajax({
+                    type: 'POST',
+                    url: $(this).data('url'),
+                    data: {
+                        'id': $(this).data('id'),
+                    },
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    success: function (response) {
+                        let tr = btn.closest('tr');
+                        tr.animate({
+                            opacity: 0,
+                            width: 0,
+                            height: 0
+                        }, 500, function () {
+                            // Animation complete.
+                            tr.css('display', 'none');
+                        });
+                    },
+                });
+            });
+
+            $('#post_scheduler').click(function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                let btn_color = btn.css('background');
+                {#btn.prop('disabled', true);#}
+                {#btn.css('background', 'grey');#}
+                let csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+                $.ajax({
+                    type: 'POST',
+                    url: '{% url "admin:posts_schedule_post" %}',
+                    data: {},
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    success: function (response) {
+                        {#btn.prop('disabled', false);#}
+                        {#btn.css('background', btn_color);#}
+                    }
+                });
+                createTimer();
+            });
+        });
+
+
+    </script>
+{% endblock %}
