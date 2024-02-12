@@ -1,5 +1,6 @@
 import calendar
 import os
+import time
 from datetime import datetime
 
 from PIL import Image
@@ -60,10 +61,35 @@ class BrowserManager:
         return webdriver.Chrome(service=service, options=options)
 
     @staticmethod
-    def click_element(xpath, driver):
-        WebDriverWait(driver, 5).until(
+    def click_element(xpath, driver, need_action_chains=False):
+        element = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
-        ).click()
+        )
+        if need_action_chains:
+            # need for covered plus btn
+            # doesn't work
+            ...
+            # action = ActionChains(driver)
+            # action.move_to_element_with_offset(element, 1, element.size["height"]/2).click().perform()
+        element.click()
+
+    def select_scheduled_posts_images(self, driver):
+        self.switch_to_tab(driver, "my/vault/list/")
+        row = 1
+        div_num = 1
+        for x in range(1, 19):
+            time.sleep(0.1)
+            div = f'//*[@id="content"]/div[1]/div[2]/div/div/div[4]/div/div/div[1]/div[{row}]/div/div[{div_num}]/div'
+            self.click_element(div, driver)
+            div_num += 1
+            if x % 3 == 0:
+                row += 1
+                div_num = 1
+            if x % 9 == 0:
+                scroll_to = 550 * (x // 9)
+                driver.execute_script(f"window.scrollTo(0, {scroll_to});")
+                time.sleep(0.1)
+        return True
 
     @staticmethod
     def click_day_number_div(driver, div):
@@ -127,7 +153,7 @@ class BrowserManager:
         return True
 
     def create_new_post(self, driver):
-        self.click_element(Button.ADD_NEW_POST, driver)
+        self.click_element(Button.ADD_NEW_POST, driver, need_action_chains=True)
         return True
 
     def make_screenshot(self, driver):
@@ -135,19 +161,19 @@ class BrowserManager:
         return True
 
     @staticmethod
-    def switch_to_posts_create_tab(driver):
+    def switch_to_tab(driver, url_part: str):
         window_handles = driver.window_handles
         if len(window_handles) == 1:
-            if "/posts/create" in driver.current_url:
+            if url_part in driver.current_url:
                 return
             else:
-                raise Exception("Tab with URL '/posts/create' not found")
+                raise Exception(f"Tab with URL '{url_part}' not found")
         else:
             for handle in window_handles:
-                driver.execute_script("window.open(arguments[0]);", handle)
-                if "/posts/create" in driver.current_url:
+                driver.switch_to.window(handle)
+                if url_part in driver.current_url:
                     return
-            raise Exception("Tab with URL '/posts/create' not found")
+            raise Exception(f"Tab with URL '{url_part}' not found")
 
 
 class TimeHandlerMixin:
@@ -232,22 +258,39 @@ class TelegramManager:
         asyncio.set_event_loop(loop)
         self.my_client = TelegramClient('anon', api_id, api_hash, loop=loop)
 
+    @staticmethod
+    def compress_image(filename):
+        img = Image.open(filename)
+        if img.mode in ("RGBA", "P"):  # P mode is used for transparency in GIFs
+            img = img.convert("RGB")
+        img.thumbnail((1000, 1000), Image.LANCZOS)
+        img.save(filename, "JPEG", quality=95)
+
     async def get_messages_async(self):
         messages = await self.my_client.get_messages(channel_id, limit=30)
         dir_name = "./images/"
         post_data = []
         message_ids = []
+        text = ""
         for i, message in enumerate(messages):
-            if isinstance(message.media, MessageMediaPhoto) or isinstance(message.media, MessageMediaDocument):
-                img_name = f"img_{i}.jpg"
-                filename = f"{dir_name}{img_name}"
+            img_name = f"img_{i}.jpg"
+            filename = f"{dir_name}{img_name}"
+            if isinstance(message.media, MessageMediaPhoto):
                 await self.my_client.download_media(message, filename)
-                # compress image
-                img = Image.open(filename)
-                img.thumbnail((1500, 1500), Image.LANCZOS)
-                img.save(filename, "JPEG", quality=90)
-
-                post_data.append({"image": filename, "text": message.message})
+                post_data.append({"image": filename, "text": message.message or text})
+                text = ""
+                message_ids.append(message.id)
+            elif isinstance(message.media, MessageMediaDocument):
+                await self.my_client.download_media(message, filename)
+                try:
+                    self.compress_image(filename)
+                except IOError:
+                    pass
+                post_data.append({"image": filename, "text": message.message or text})
+                text = ""
+                message_ids.append(message.id)
+            elif message.message:
+                text = message.message
                 message_ids.append(message.id)
         return post_data, message_ids
 

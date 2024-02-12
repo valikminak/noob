@@ -3,14 +3,15 @@ import subprocess
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
 
-import pyperclip
 import pytz
 import requests
 from django.db import models
+from dotenv import load_dotenv
 
 from lapa.utils import BrowserManager, TimeHandlerMixin
+
+load_dotenv()
 
 
 class Profile(models.Model):
@@ -19,8 +20,9 @@ class Profile(models.Model):
     webdriver = models.CharField(max_length=255, verbose_name="Webdriver", default="", blank=True)
     selenium = models.CharField(max_length=100, verbose_name="Selenium", default="", blank=True)
     timezone = models.CharField(max_length=100, verbose_name="Timezone", default="UTC")
+    need_clear_posts_folder = models.BooleanField(default=False, verbose_name="Need clear posts folder")
 
-    CHROME_URL = "/Users/valentinminakov/Library/Application Support/adspower_global/cwd_global/chrome_{}/chromedriver.app/Contents/MacOS/chromedriver"
+    CHROME_URL = os.getenv('CHROME_URL')
     SELERNIUM_URL = "127.0.0.1:{}"
     MAX_RETRIES = 5
     BASE_URL = "http://local.adspower.net:50325/api/v1/browser/start?user_id={user_id}"
@@ -79,7 +81,6 @@ class Post(models.Model, TimeHandlerMixin):
     def create_post_for_profile(self, profile: Profile):
         self.browser_manager = BrowserManager(profile)
         driver = self.browser_manager.setup_webdriver()
-        self.browser_manager.switch_to_posts_create_tab(driver)
         self.browser_manager.set_expiration_period(driver)
         day_of_month = self.day_of_month
         is_pm = self.am_pm == "PM"

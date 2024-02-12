@@ -5,6 +5,7 @@
     {% block object-tools %}
         <ul class="object-tools">
             {% block object-tools-items %}
+                <li><a href="{% url "admin:posts_select_scheduled_posts_images" %}">CLEAR POSTS</a></li>
                 <li><a href="{% url "admin:posts_fetch_posts" %}">Fetch</a></li>
             {% endblock %}
         </ul>

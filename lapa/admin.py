@@ -2,14 +2,11 @@ import calendar
 import os
 from concurrent.futures import ThreadPoolExecutor
 
-from PIL import Image
-from django import forms
 from django.contrib import admin
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.safestring import mark_safe
-from requests import Response
 
 from lapa.models import Profile, Post
 
@@ -30,7 +27,7 @@ class ProfileAdmin(admin.ModelAdmin):
     actions = ["update_connection"]
 
     @admin.action(description="Update connection")
-    def update_connection(self, request, queryset):
+    def update_connection(self, _, queryset):
         bulk = []
         for x in queryset:
             wd, sel = x.get_connection_data()
@@ -60,7 +57,7 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
         return False
 
     @staticmethod
-    def _delete_selected(modeladmin, request, queryset):
+    def _delete_selected(modeladmin, _, queryset):
         queryset.delete()
 
     _delete_selected.short_description = "Delete"
@@ -209,6 +206,18 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
             if os.path.isfile(file_path) or os.path.islink(file_path):
                 os.rename(file_path, f"{dir_screenshot_now}{filename}")
 
+    def select(self, profile: Profile):
+        browser_manager, driver = self.get_browser_manager_and_driver(profile)
+        browser_manager.select_scheduled_posts_images(driver)
+
+    def select_scheduled_posts_images(self, request):
+        profiles = Profile.objects.filter(need_clear_posts_folder=True)
+        with ThreadPoolExecutor(max_workers=len(profiles)) as executor:
+            futures = [executor.submit(self.select, x) for x in profiles]
+        for future in futures:
+            future.result()
+        return redirect(request.META.get('HTTP_REFERER'))
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -216,5 +225,7 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
             path('fill_post/', self.admin_site.admin_view(self.fill_post), name="posts_fill_post"),
             path('schedule_post/', self.admin_site.admin_view(self.schedule_post), name="posts_schedule_post"),
             path('create_new_post/', self.admin_site.admin_view(self.create_new_post), name="posts_create_new_post"),
+            path('select_scheduled_posts_images/', self.admin_site.admin_view(self.select_scheduled_posts_images),
+                 name="posts_select_scheduled_posts_images"),
         ]
         return custom_urls + urls
