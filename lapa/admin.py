@@ -43,6 +43,7 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
         "_image", "next_month", "_text", "is_12_plus", "sent", "time", "day_of_month", "am_pm", "_fill_post")
     change_list_template = "admin/lapa/post_change_list.html"
     actions = ["_delete_selected"]
+    list_editable = ["time", "day_of_month", "am_pm"]
 
     class Meta:
         verbose_name = 'Post'
@@ -77,7 +78,7 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
             f'<button type="button" data-id="{obj.pk}" class="fill-post btn" data-url="{url}" class="fill-post">FILL</button>')
 
     def make_screenshot(self):
-        screenshot = pyautogui.screenshot(region=(0, 90, 1490, 600))
+        screenshot = pyautogui.screenshot(region=(0, 90, 1290, 600))
         dir_screenshot = "./screenshots/"
         done_screenshot_count = len(os.listdir("./now/"))
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -159,8 +160,20 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
 
     def fill_post(self, request):
         if request.method == "POST":
+            form = request.POST
+            time = form.get("time")
+            day_of_month = form.get("day_of_month")
+            am_pm = form.get("am_pm")
             pk = request.POST.get("id")
             post = Post.objects.get(pk=pk)
+            if any([time != str(post.time), day_of_month != str(post.day_of_month), am_pm != post.am_pm]):
+                if time != post.time:
+                    post.time = int(time)
+                if day_of_month != post.day_of_month:
+                    post.day_of_month = int(day_of_month)
+                if am_pm != post.am_pm:
+                    post.am_pm = am_pm
+                post.save(update_fields=["time", "day_of_month", "am_pm"])
             post.fill()
             post.sent = True
             post.save(update_fields=["sent"])

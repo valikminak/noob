@@ -10,4 +10,10 @@
             {% endblock %}
         </ul>
     {% endblock %}
+
+    <script>
+        $(document).ready(function() {
+            $('#content-main').next('ul.object-tools').remove();
+        });
+    </script>
 {% endblock %}

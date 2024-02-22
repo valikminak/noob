@@ -66,18 +66,20 @@ class BrowserManager:
             EC.element_to_be_clickable((By.XPATH, xpath))
         )
         if need_action_chains:
-            # need for covered plus btn
-            # doesn't work
-            ...
-            # action = ActionChains(driver)
-            # action.move_to_element_with_offset(element, 1, element.size["height"]/2).click().perform()
-        element.click()
+            # need when plus btn is covered by another element
+            element.find_element(By.XPATH, xpath)
+            action = ActionChains(driver)
+            action.move_to_element_with_offset(element, 1, 23).click().perform()
+        else:
+            element.click()
 
     def select_scheduled_posts_images(self, driver):
+        driver.execute_script(f"window.scrollTo(0, 0);")
+        time.sleep(0.3)
         self.switch_to_tab(driver, "my/vault/list/")
         row = 1
         div_num = 1
-        for x in range(1, 19):
+        for x in range(1, 22):
             time.sleep(0.1)
             div = f'//*[@id="content"]/div[1]/div[2]/div/div/div[4]/div/div/div[1]/div[{row}]/div/div[{div_num}]/div'
             self.click_element(div, driver)
@@ -86,9 +88,9 @@ class BrowserManager:
                 row += 1
                 div_num = 1
             if x % 9 == 0:
-                scroll_to = 550 * (x // 9)
+                scroll_to = 550
                 driver.execute_script(f"window.scrollTo(0, {scroll_to});")
-                time.sleep(0.1)
+                time.sleep(0.2)
         return True
 
     @staticmethod

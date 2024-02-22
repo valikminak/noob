@@ -60,11 +60,18 @@
                 btn.prop('disabled', true);
                 btn.css('background', 'grey');
                 let csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+                let time = $(this).closest('tr').find('td.field-time select').val();
+                let day_of_month = $(this).closest('tr').find('td.field-day_of_month select').val();
+                let am_pm = $(this).closest('tr').find('td.field-am_pm select').val();
+
                 $.ajax({
                     type: 'POST',
                     url: $(this).data('url'),
                     data: {
                         'id': $(this).data('id'),
+                        'time': time,
+                        'day_of_month': day_of_month,
+                        'am_pm': am_pm
                     },
                     headers: {
                         'X-CSRFToken': csrftoken
