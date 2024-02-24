@@ -1,6 +1,9 @@
 import calendar
-import os
+import re
 from concurrent.futures import ThreadPoolExecutor
+
+from dotenv import load_dotenv
+import os
 
 from django.contrib import admin
 from django.http import HttpResponse
@@ -8,12 +11,14 @@ from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.safestring import mark_safe
 
-from lapa.models import Profile, Post
+from lapa.models import Profile, Post, PostModel
 
 import pyautogui
 from datetime import datetime, timedelta
 
 from lapa.utils import TelegramManager, TimeHandlerMixin, BrowserManager
+
+load_dotenv()
 
 
 @admin.register(Profile)
@@ -40,7 +45,8 @@ class ProfileAdmin(admin.ModelAdmin):
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
     list_display = (
-        "_image", "next_month", "_text", "is_12_plus", "sent", "time", "day_of_month", "am_pm", "_fill_post")
+        "_image", "_text", "username", "_date_joined", "is_12_plus", "sent", "time", "day_of_month",
+        "am_pm", "_fill_post")
     change_list_template = "admin/lapa/post_change_list.html"
     actions = ["_delete_selected"]
     list_editable = ["time", "day_of_month", "am_pm"]
@@ -48,6 +54,23 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
     class Meta:
         verbose_name = 'Post'
         verbose_name_plural = 'Posts'
+
+    def _date_joined(self, obj):
+        username_dates = {x.username: x for x in PostModel.objects.all()}
+        model = username_dates.get(obj.username)
+        date_joined = model.date_joined if model else None
+        if not date_joined:
+            style = "color: red"
+            return mark_safe(f'<p style={style}>Not found</p>')
+        else:
+            months_since_joined = model.get_since_joined_info()
+            return mark_safe(f'<p>{months_since_joined}</p>')
+
+    @staticmethod
+    def extract_usernames(text):
+        pattern = r'@([\w.-]+)'
+        usernames = re.findall(pattern, text)
+        return usernames[0] if usernames else ""
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -64,7 +87,7 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
     _delete_selected.short_description = "Delete"
 
     def _text(self, obj):
-        post_text = obj.text[:70] + "..." if len(obj.text) > 70 else obj.text
+        post_text = obj.text[:10] + "..." if len(obj.text) > 10 else obj.text
         return mark_safe(f'<p>{post_text}</p>')
 
     @staticmethod
@@ -98,6 +121,7 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
         self.move_screenshots()
         # delete all the posts and its images
         Post.objects.all().delete()
+        # clear images folder
         self.clear_img_directory()
         # fetch new posts
         manager = TelegramManager()
@@ -111,6 +135,7 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
         post_time = None
         need_to_change_month = False
         for i, data in enumerate(post_data):
+            username = self.extract_usernames(data["text"])
             if i == 0:
                 post_time = utc_time_now
             else:
@@ -127,7 +152,8 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
                     time=post_time,
                     am_pm=am_pm,
                     day_of_month=day_of_month,
-                    next_month=need_to_change_month
+                    next_month=need_to_change_month,
+                    username=username
                 )
             )
         Post.objects.bulk_create(bulk_posts)
@@ -153,7 +179,8 @@ class PostAdmin(admin.ModelAdmin, TimeHandlerMixin):
                 am_pm=am_pm_plus_12,
                 day_of_month=day_of_month,
                 next_month=new_need_to_change_month,
-                is_12_plus=True
+                is_12_plus=True,
+                username=post.username,
             )
             bulk.append(duplicate_post)
         Post.objects.bulk_create(bulk)

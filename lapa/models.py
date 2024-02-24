@@ -3,10 +3,13 @@ import subprocess
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 import pytz
 import requests
+from dateutil.relativedelta import relativedelta
 from django.db import models
+from django.utils import timezone
 from dotenv import load_dotenv
 
 from lapa.utils import BrowserManager, TimeHandlerMixin
@@ -70,6 +73,7 @@ class Post(models.Model, TimeHandlerMixin):
     day_of_month = models.IntegerField(choices=[(i, i) for i in range(1, 32)], default=1, verbose_name="Day")
     next_month = models.BooleanField(default=False, verbose_name="Next month")
     is_12_plus = models.BooleanField(default=False, verbose_name="Is 12+")
+    username = models.CharField(max_length=100, verbose_name="Username", null=True, blank=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -142,5 +146,21 @@ class Post(models.Model, TimeHandlerMixin):
         super().delete(*args, **kwargs)
 
 
+class PostModel(models.Model):
+    username = models.CharField(max_length=100, verbose_name="Username")
+    date_joined = models.DateTimeField(verbose_name="Date joined", null=True, blank=True)
+    subscribers = models.IntegerField(verbose_name="Subscribers", default=None, null=True, blank=True)
+    first_post_date = models.DateTimeField(verbose_name="First post date", null=True, blank=True)
 
-
+    def get_since_joined_info(self):
+        if self.first_post_date is None:
+            return None
+        now = timezone.now()
+        rdelta = relativedelta(now, self.first_post_date)
+        since_joined_info = rdelta.years * 12 + rdelta.months
+        color = "green" if since_joined_info > 4 else "orange"
+        since_joined_info = f"<span style='color: {color}'>{since_joined_info}m</span>"
+        if self.subscribers:
+            subscribes_count = str(self.subscribers / 1000) + 'K'
+            since_joined_info += f" {subscribes_count}"
+        return since_joined_info
